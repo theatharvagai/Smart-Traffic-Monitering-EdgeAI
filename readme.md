@@ -1,107 +1,152 @@
-# 🚀 YOLOv10 Real-Time Traffic Detection
+# 🎥🚀 VisionTrack-YOLO
 
-🚦 **Real-Time Object Detection** • 🤖 **YOLOv10n** • 📊 **MTID Dataset** • 📦 **MLOps Pipeline**
+### 🔥 Real-Time Object Detection & Tracking using YOLO + BoT-SORT
 
----
+<p align="center">
+  <img src="https://readme-typing-svg.herokuapp.com?font=Orbitron&size=28&duration=3000&color=00FFAA&center=true&vCenter=true&width=900&lines=Real-Time+Object+Detection;Multi-Class+Tracking+System;YOLO+%2B+BoT-SORT+Pipeline;AI+Powered+Computer+Vision" />
+</p>
 
-This project showcases a **fine-tuned YOLOv10 model** for real-time traffic object detection. The model identifies **cars, buses, lorries, and bicycles** with high accuracy, trained on the challenging Multi-View Traffic Intersection Dataset (MTID).
-
-This repository demonstrates a complete MLOps pipeline, from data preprocessing to model training, validation, and inference.
-
-<br>
-_Add a GIF or image here showing your model in action!_
-
----
-
-## 📌 Key Features
-
-* **✅ State-of-the-Art Model:** Utilizes **YOLOv10n**, a powerful and efficient object detection model.
-* **✅ Custom-Trained:** Fine-tuned on a large-scale, real-world traffic dataset for superior performance.
-* **✅ High Performance:** Achieved an impressive **79.2% mAP50-95** on the validation set.
-* **✅ Inference Ready:** Comes with a simple Python script to run the model on your own images and generate a detection video.
+<p align="center">
+  <img src="https://img.shields.io/badge/YOLO-Object%20Detection-red?style=for-the-badge&logo=python" />
+  <img src="https://img.shields.io/badge/BoT--SORT-Tracking-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Computer%20Vision-AI-green?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Status-Research%20Project-purple?style=for-the-badge" />
+</p>
 
 ---
 
-## 🛠️ Technologies & Frameworks Used
+## 🧠 Project Overview
 
-* **💻 Python**
-* **🤖 PyTorch**
-* **🚀 YOLOv10**
-* ** OpenCV** for video processing
-* **📊 NumPy** for numerical operations
+**VisionTrack-YOLO** is an AI-powered real-time object detection and multi-object tracking system designed for intelligent video analysis using deep learning and computer vision techniques.
+
+The system leverages a trained YOLO model combined with BoT-SORT tracking to detect, classify, and track multiple objects across video frames with high accuracy and efficiency.
 
 ---
 
-## 📊 Model Performance
+## 🎯 Key Features
 
-The model was trained for **50 epochs** on a Google Colab **T4 GPU**.
-
-| Class     | mAP50-95  | Precision | Recall  |
-| :-------- | :-------: | :-------: | :-----: |
-| 🌍 **All** | **0.792** | **0.889** | **0.877** |
-| 🚗 Car   | 0.875     | 0.912     | 0.905   |
-| 🚌 Bus   | 0.941     | 0.926     | 0.972   |
-| 🚚 Lorry | 0.881     | 0.858     | 0.903   |
-| 🚲 Bicycle | 0.472     | 0.859     | 0.727   |
+🎥 Real-Time Video Object Detection
+📦 Multi-Class Object Recognition
+🧭 Advanced Multi-Object Tracking (BoT-SORT)
+🧠 Deep Learning-Based Vision Pipeline
+📊 Automatic Prediction Logging & Results Saving
+⚡ High-Speed Inference using Ultralytics YOLO
+📁 Dataset Integration with Annotated Infra Dataset
 
 ---
 
-## ⚙️ Setup & Installation
+## ⚙️ System Pipeline
 
-Follow these steps to get the project running on your local machine.
-
-1.  **Clone the Repository**
-    ```sh
-    git clone [https://github.com/YOUR_USERNAME/YOLOv10-Traffic-Detection.git](https://github.com/YOUR_USERNAME/YOLOv10-Traffic-Detection.git)
-    cd YOLOv10-Traffic-Detection
-    ```
-
-2.  **Create and Activate a Virtual Environment**
-    ```sh
-    # Create the virtual environment
-    python -m venv venv
-
-    # Activate it
-    # On macOS/Linux:
-    source venv/bin/activate
-    # On Windows:
-    .\venv\Scripts\activate
-    ```
-
-3.  **Install Dependencies**
-    ```sh
-    pip install -r requirements.txt
-    ```
-
-4.  **Download the Trained Model**
-    Download the trained weights file (`best.pt`) from your project's `runs` folder in Google Colab and place it in the root directory of this repository.
+```
+Input Video / Dataset
+        ↓
+YOLO Model Inference (Detection)
+        ↓
+BoT-SORT Tracker (Object Tracking)
+        ↓
+Bounding Box + Class Labels
+        ↓
+Saved Predictions & Tracking Results
+```
 
 ---
 
-## 🚀 How to Run Inference
+## 🛠️ Tech Stack
 
-1.  **Prepare Your Data**
-    * Create a folder for your images (e.g., `data/my_images/`).
-    * Place all the images or video frames you want to process inside this folder.
-
-2.  **Run the Inference Script**
-    * Execute the script from your terminal. Point it to your model file, image folder, and desired output video name.
-    ```sh
-    python video_inference.py --model best.pt --images data/my_images/ --output my_results.mp4
-    ```
-    * The script will process each image and save a new video file named `my_results.mp4` in the root directory.
+* 🐍 Python
+* 🤖 Ultralytics YOLO (Deep Learning Model)
+* 🎯 BoT-SORT Tracker
+* 📊 OpenCV (Video Processing)
+* 🧠 Computer Vision & Deep Learning
+* 📁 Custom Annotated Dataset (Infra Classes)
 
 ---
 
-## 🙏 Acknowledgements & Dataset
+## 📂 Project Workflow
 
-This project was made possible by the high-quality **Multi-View Traffic Intersection Dataset (MTID)**. All credit for data collection and annotation goes to the original authors.
-
-* **Dataset Homepage:** [MTID - Multi-View Traffic Intersection Dataset](https://vap.aau.dk/mtid/)
-* **Citation:** Jensen, M. B., Møgelmose, A., & Moeslund, T. B. (2019). Presenting the Multi-View Traffic Intersection Dataset (MTID). In *2019 IEEE International Conference on Image Processing (ICIP).*
+1. Load trained YOLO model weights
+2. Extract dataset and training runs
+3. Perform object detection on video
+4. Apply BoT-SORT tracking for multi-object tracking
+5. Save annotated output video and detection logs
 
 ---
 
-## 👨‍💻 About This Project
+## ▶️ How to Run the Project
 
-This project is a demonstration of skills in computer vision and deep learning, created as part of my **M.Tech in CSE at VIT Vellore**.
+### 1️⃣ Clone the Repository
+
+```bash
+git clone https://github.com/your-username/VisionTrack-YOLO.git
+cd VisionTrack-YOLO
+```
+
+### 2️⃣ Install Dependencies
+
+```bash
+pip install ultralytics
+```
+
+### 3️⃣ Run Detection & Tracking
+
+```bash
+yolo track \
+  model="weights/best.pt" \
+  source="input_video.mp4" \
+  conf=0.25 \
+  save=True \
+  tracker="botsort.yaml"
+```
+
+---
+
+## 📸 Output Results
+
+* 🎯 Tracked Objects with Bounding Boxes
+* 🧾 Detection Text Files
+* 🎥 Processed Output Video
+* 📊 Prediction Logs
+
+(Add your output screenshots/GIF here for better GitHub reach)
+
+---
+
+## 🔬 Use Cases
+
+* Smart Surveillance Systems
+* Traffic Monitoring
+* Infrastructure Inspection
+* AI Video Analytics
+* Security & Defense Applications
+
+---
+
+## 📈 Model Capabilities
+
+* Multi-Class Detection
+* Infrared Dataset Support
+* Robust Tracking in Dynamic Scenes
+* High Accuracy Object Localization
+
+---
+
+## 🧪 Future Improvements
+
+* Real-Time Webcam Integration
+* Web Dashboard (Streamlit/Gradio)
+* Edge Device Deployment (Jetson / Raspberry Pi)
+* Model Optimization (TensorRT)
+* Live Alert System for Detected Objects
+
+---
+
+## 👨‍💻 Author
+
+**Atharva**
+M.Tech CSE | AI | Computer Vision | Deep Learning
+
+---
+
+## ⭐ Final Note
+
+This project demonstrates a complete end-to-end AI vision pipeline combining deep learning detection and advanced tracking algorithms for real-world intelligent video analytics.
