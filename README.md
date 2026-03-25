@@ -10,6 +10,16 @@ A comprehensive Smart City solution featuring real-time vehicle tracking, speed 
 
 ---
 
+## 📸 Dashboard Preview
+
+![Dashboard Preview 1](dashboard_1.png)
+*Real-time multi-lane vehicle detection and flow analysis.*
+
+![Dashboard Preview 2](dashboard_2.png)
+*Dynamic signal timing and historical data benchmarking.*
+
+---
+
 ## ✨ Advanced Features
 
 | Feature | Details |
