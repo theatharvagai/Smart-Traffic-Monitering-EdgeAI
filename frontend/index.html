@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Traffic Monitor — Atharva Gai</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%; overflow: hidden;
+  background: #111;
+  color: #ccc;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+}
+
+/* top nav */
+nav {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid #1f1f1f;
+  background: #111;
+}
+.nav-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.03em;
+}
+.nav-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #fff;
+  margin-left: 14px;
+}
+.nav-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #fff;
+}
+.nav-status .dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  margin-right: 4px;
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* main layout */
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr 240px;
+  height: calc(100vh - 64px); /* nav + footer */
+  overflow: hidden;
+}
+
+/* columns — no background, no border */
+.col {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.col + .col {
+  border-left: 1px solid #1c1c1c;
+}
+
+/* section label */
+.sec-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #444;
+  margin-bottom: 8px;
+}
+.sec-label.accent { color: #3b82f6; }
+
+/* ── LEFT COL ── */
+
+/* upload zone — minimal, just a dashed outline barely visible */
+.drop-zone {
+  border: 1px dashed #2a2a2a;
+  border-radius: 4px;
+  padding: 18px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+.drop-zone:hover { border-color: #3b82f6; }
+.drop-zone.has-file { border-color: #22c55e; }
+.drop-zone.dragging { border-color: #f59e0b; background: rgba(245,158,11,0.04); }
+
+.drop-zone .icon { font-size: 20px; display: block; margin-bottom: 8px; }
+.drop-zone .main-txt {
+  font-size: 11px; font-weight: 500; color: #aaa;
+  display: block; margin-bottom: 3px;
+}
+.drop-zone .sub-txt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: #444;
+}
+
+/* run button — just a flat colored bar */
+.btn-run {
+  width: 100%;
+  padding: 9px;
+  background: #1d4ed8;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.btn-run:hover:not(:disabled) { background: #2563eb; }
+.btn-run:disabled { background: #1a1a1a; color: #333; cursor: not-allowed; }
+
+.spinner {
+  display: inline-block;
+  width: 11px; height: 11px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.err-txt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #ef4444;
+  line-height: 1.5;
+  display: none;
+}
+
+/* stat row — just numbers, no cards */
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 6px;
+  flex-shrink: 0;
+}
+.stat .val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+.stat .val.blue { color: #60a5fa; }
+.stat .val.green { color: #4ade80; }
+.stat .val.yellow { color: #facc15; }
+.stat .lbl {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 3px;
+}
+
+/* direction section */
+.dir-list { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+.dir-row { display: flex; align-items: center; gap: 7px; }
+.dir-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: #555; width: 44px; flex-shrink: 0;
+}
+.dir-bar {
+  flex: 1; height: 3px; background: #1e1e1e; border-radius: 2px; overflow: hidden;
+}
+.dir-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+.dir-cnt {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: #555; width: 20px; text-align: right; flex-shrink: 0;
+}
+
+/* ── CENTER COL ── */
+.center-col {
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  padding: 14px 16px;
+  gap: 8px;
+}
+
+/* video container for signals */
+.video-container {
+  position: relative;
+  flex: 1; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* traffic signal styling — 0.5X smaller version */
+.traffic-signal {
+  position: absolute;
+  width: 14px; height: 32px;
+  background: #222;
+  border-radius: 2px;
+  padding: 2px;
+  display: flex; flex-direction: column; gap: 2px;
+  border: 1px solid #333;
+  z-index: 10;
+}
+.light {
+  width: 100%; aspect-ratio: 1;
+  border-radius: 50%;
+  background: #111;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.light.red.on { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+.light.green.on { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+
+.signal-up    { top: -12px; left: 50%; transform: translateX(-50%); }
+.signal-down  { bottom: -12px; left: 50%; transform: translateX(-50%); }
+.signal-left  { left: -12px; top: 50%; transform: translateY(-50%); }
+.signal-right { right: -12px; top: 50%; transform: translateY(-50%); }
+
+.signal-label {
+  position: absolute;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 6.5px; font-weight: 700;
+  color: #555; text-transform: uppercase;
+}
+.signal-up .signal-label    { bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px;}
+.signal-down .signal-label  { top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px;}
+.signal-left .signal-label  { right: 100%; top: 50%; transform: translateY(-50%); margin-right: 3px; }
+.signal-right .signal-label { left: 100%; top: 50%; transform: translateY(-50%); margin-left: 3px; }
+
+.timer-bubble {
+  position: absolute;
+  background: #3b82f6; color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 7px; font-weight: 700;
+  padding: 1px 3px; border-radius: 2px;
+  white-space: nowrap;
+}
+.signal-up .timer-bubble { top: -10px; left: 110%; }
+.signal-down .timer-bubble { bottom: -10px; left: 110%; }
+.signal-left .timer-bubble { top: -10px; left: 0; }
+.signal-right .timer-bubble { top: -10px; right: 0; }
+
+/* history indicator */
+.hist-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px; color: #444;
+  margin-top: 2px;
+}
+
+/* video — just the video itself, minimal frame */
+.video-area {
+  width: 100%; height: 100%;
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 3px;
+  overflow: hidden;
+}
+video {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.vid-placeholder {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  opacity: 0.15;
+}
+.vid-placeholder .ico { font-size: 36px; }
+.vid-placeholder p {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em;
+}
+
+/* video metadata row */
+.vid-meta {
+  display: flex; align-items: center; gap: 16px;
+  flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: #444;
+}
+.vid-meta span { color: #666; }
+.vid-meta strong { color: #aaa; }
+
+/* ── RIGHT COL ── */
+
+/* perf numbers — just text rows */
+.perf-list { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.perf-row { display: flex; align-items: baseline; justify-content: space-between; }
+.perf-key {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.perf-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 700; color: #e2e8f0;
+}
+.perf-val.b { color: #60a5fa; }
+.perf-val.g { color: #4ade80; }
+.perf-val.y { color: #facc15; }
+
+/* thin divider */
+.divider { height: 1px; background: #1c1c1c; flex-shrink: 0; }
+
+/* classes line */
+.class-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; color: #555;
+  line-height: 1.8;
+  flex-shrink: 0;
+}
+.class-line span { color: #aaa; margin-right: 8px; }
+
+/* tabs — plain underline style */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid #1c1c1c; flex-shrink: 0; }
+.tab {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em;
+  color: #444; padding: 5px 12px 5px 0;
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: color 0.15s;
+  user-select: none;
+}
+.tab:hover { color: #888; }
+.tab.on { color: #60a5fa; border-color: #3b82f6; }
+
+.tab-pane { flex: 1; min-height: 0; display: none; }
+.tab-pane.on { display: flex; flex-direction: column; }
+
+/* terminal */
+.terminal {
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  padding: 6px 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; line-height: 1.8;
+  background: transparent;
+}
+.terminal::-webkit-scrollbar { width: 3px; }
+.terminal::-webkit-scrollbar-thumb { background: #222; }
+
+.tl { display: flex; gap: 8px; }
+.ts { color: #2a2a2a; flex-shrink: 0; }
+.ti { color: #3b82f6; }
+.to { color: #22c55e; }
+.tw { color: #f59e0b; }
+.te { color: #ef4444; }
+.td { color: #333; }
+.tc { color: #06b6d4; }
+
+/* csv table */
+.csv-scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.csv-scroll::-webkit-scrollbar { width: 3px; }
+.csv-scroll::-webkit-scrollbar-thumb { background: #222; }
+
+table { width: 100%; border-collapse: collapse; }
+thead { position: sticky; top: 0; background: #111; z-index: 1; }
+th {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px; color: #444; padding: 4px 6px; text-align: left;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  border-bottom: 1px solid #1c1c1c;
+}
+td {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px; color: #888; padding: 3px 6px;
+  border-bottom: 1px solid #161616;
+}
+tr:hover td { color: #ccc; }
+.no-rows { text-align: center; padding: 24px; color: #2a2a2a; font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; }
+
+/* csv download btn */
+.btn-csv {
+  margin-top: 6px; flex-shrink: 0;
+  background: none;
+  border: 1px solid #222;
+  color: #555;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px; font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer; align-self: flex-start;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btn-csv:hover:not(:disabled) { color: #4ade80; border-color: #4ade80; }
+.btn-csv:disabled { opacity: 0.25; cursor: not-allowed; }
+
+/* footer */
+footer {
+  height: 24px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px;
+  border-top: 1px solid #1c1c1c;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #fff;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div style="display:flex; align-items:baseline; gap:0">
+    <span class="nav-title">traffic-monitor</span>
+    <span class="nav-sub" id="nav-info">/ Atharva Gai · VIT Vellore · MTech CSE · Edge AI · 2026</span>
+  </div>
+  <div class="nav-status">
+    <span><span class="dot"></span>api active</span>
+    <span id="nav-tech">personal_model (YOLOv10n) · PyTorch · OpenCV · Flask · 4 threads</span>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT -->
+  <div class="col">
+
+    <!-- upload -->
+    <div style="flex-shrink:0">
+      <div class="sec-label">input</div>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fi').click()">
+        <input type="file" id="fi" accept="video/*" style="display:none">
+        
+        <div id="dropDefault">
+          <span class="icon">📂</span>
+          <span class="main-txt">drop traffic video here</span>
+          <span class="sub-txt">mp4 · avi · mov</span>
+        </div>
+        
+        <div id="dropMeta" style="display:none; margin-top:5px; text-align:center">
+          <span class="sub-txt" id="dropFilename" style="color:#aaa; font-size:10px"></span>
+        </div>
+      </div>
+      <button class="btn-run" id="runBtn" disabled onclick="go()" style="margin-top:8px">
+        <span id="bspinner" style="display:none"><span class="spinner"></span></span>
+        <span id="blabel">run inference</span>
+      </button>
+      <div class="err-txt" id="err"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- stats -->
+    <div style="flex-shrink:0">
+      <div class="sec-label">counts</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="val" id="s-det">—</div>
+          <div class="lbl">detections</div>
+        </div>
+        <div class="stat">
+          <div class="val green" id="s-fps">—</div>
+          <div class="lbl">eFPS</div>
+        </div>
+        <div class="stat">
+          <div class="val blue" id="s-avgspd">—</div>
+          <div class="lbl">avg km/h</div>
+        </div>
+        <div class="stat">
+          <div class="val yellow" id="s-maxspd">—</div>
+          <div class="lbl">max km/h</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- direction -->
+    <div style="flex-shrink:0">
+      <div class="sec-label">traffic flow</div>
+      <div class="dir-list">
+        <div class="dir-row">
+          <span class="dir-name">→ right</span>
+          <div class="dir-bar"><div class="dir-fill" id="df-r" style="width:0%;background:#3b82f6"></div></div>
+          <span class="dir-cnt" id="dc-r">0</span>
+        </div>
+        <div class="dir-row">
+          <span class="dir-name">← left</span>
+          <div class="dir-bar"><div class="dir-fill" id="df-l" style="width:0%;background:#f59e0b"></div></div>
+          <span class="dir-cnt" id="dc-l">0</span>
+        </div>
+        <div class="dir-row">
+          <span class="dir-name">↓ down</span>
+          <div class="dir-bar"><div class="dir-fill" id="df-d" style="width:0%;background:#22c55e"></div></div>
+          <span class="dir-cnt" id="dc-d">0</span>
+        </div>
+        <div class="dir-row">
+          <span class="dir-name">↑ up</span>
+          <div class="dir-bar"><div class="dir-fill" id="df-u" style="width:0%;background:#a78bfa"></div></div>
+          <span class="dir-cnt" id="dc-u">0</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CENTER -->
+  <div class="center-col">
+
+    <div class="sec-label accent">inference output</div>
+
+    <div class="video-container">
+      <!-- Signals -->
+      <div id="sig-up" class="traffic-signal signal-up">
+        <div class="signal-label">UP</div>
+        <div class="light red on"></div>
+        <div class="light green"></div>
+        <div id="t-up" class="timer-bubble" style="display:none"></div>
+      </div>
+      <div id="sig-down" class="traffic-signal signal-down">
+        <div class="signal-label">DOWN</div>
+        <div class="light red on"></div>
+        <div class="light green"></div>
+        <div id="t-down" class="timer-bubble" style="display:none"></div>
+      </div>
+      <div id="sig-left" class="traffic-signal signal-left">
+        <div class="signal-label">LEFT</div>
+        <div class="light red on"></div>
+        <div class="light green"></div>
+        <div id="t-left" class="timer-bubble" style="display:none"></div>
+      </div>
+      <div id="sig-right" class="traffic-signal signal-right">
+        <div class="signal-label">RIGHT</div>
+        <div class="light red on"></div>
+        <div class="light green"></div>
+        <div id="t-right" class="timer-bubble" style="display:none"></div>
+      </div>
+
+      <div class="video-area" id="va">
+        <div class="vid-placeholder" id="vph">
+          <div class="ico">▶</div>
+          <p>processed video appears here</p>
+        </div>
+        
+        <div id="roiWrap" style="display:none; position:relative; max-width:100%; max-height:100%;">
+          <canvas id="thumbCanvas" style="display:block; cursor:crosshair; border-radius:3px; box-shadow:0 0 0 1px #333"></canvas>
+          <div style="position:absolute; bottom:16px; left:0; right:0; text-align:center; pointer-events:none;">
+            <span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:#fff; background:rgba(0,0,0,0.7); padding:6px 10px; border-radius:4px;">Left Click: Draw Spotlight Zone &nbsp;│&nbsp; Right Click: Clear</span>
+          </div>
+        </div>
+
+        <video id="vid" style="display:none" controls autoplay loop></video>
+      </div>
+    </div>
+
+    <div class="vid-meta" id="vidmeta">
+      <span>frames: <strong id="vm-fr">—</strong></span>
+      <span>efps: <strong id="vm-fps">—</strong></span>
+      <span>avg infer: <strong id="vm-infer">—</strong></span>
+      <span>backend: <strong id="vm-back">—</strong></span>
+    </div>
+
+  </div>
+
+  <!-- RIGHT -->
+  <div class="col">
+
+    <div style="flex-shrink:0">
+      <div class="sec-label">performance</div>
+      <div class="perf-list">
+        <div class="perf-row">
+          <span class="perf-key">avg inference</span>
+          <span class="perf-val b" id="p-avgi">— ms</span>
+        </div>
+        <div class="perf-row">
+          <span class="perf-key">min / max</span>
+          <span class="perf-val" style="font-size:10px" id="p-mm">— / —</span>
+        </div>
+        <div class="perf-row">
+          <span class="perf-key">eff fps</span>
+          <span class="perf-val g" id="p-fps">—</span>
+        </div>
+        <div class="perf-row">
+          <span class="perf-key">workers</span>
+          <span class="perf-val y" id="p-wk">—</span>
+        </div>
+        <div class="perf-row">
+          <span class="perf-key">backend</span>
+          <span class="perf-val" style="font-size:10px" id="p-bk">—</span>
+        </div>
+        <div class="perf-row">
+          <span class="perf-key">avg speed</span>
+          <span class="perf-val" id="p-as">—</span>
+        </div>
+        <div class="perf-row">
+          <span class="perf-key">max speed</span>
+          <span class="perf-val y" id="p-ms">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="class-line" id="classLine">—</div>
+
+    <div class="divider"></div>
+
+    <!-- log / csv tabs -->
+    <div class="tabs">
+      <div class="tab on" id="t-log" onclick="tab('log')">log</div>
+      <div class="tab" id="t-csv" onclick="tab('csv')">csv</div>
+    </div>
+
+    <div class="tab-pane on" id="tp-log">
+      <div class="terminal" id="term"></div>
+    </div>
+
+    <div class="tab-pane" id="tp-csv">
+      <div class="csv-scroll">
+        <table>
+          <thead>
+            <tr><th>#</th><th>frm</th><th>id</th><th>cls</th><th>conf</th><th>spd</th><th>dir</th></tr>
+          </thead>
+          <tbody id="tbody"><tr><td colspan="7" class="no-rows">no data</td></tr></tbody>
+        </table>
+      </div>
+      <button class="btn-csv" id="csvBtn" disabled onclick="dlCSV()">↓ download csv</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span>Smart City Infrastructure · VIT Vellore Edge AI</span>
+  <span>MTech CSE · M26</span>
+</footer>
+
+<script>
+let vFile = null, csvUrl = null;
+let roiPts = [];
+let baseFrame = null;
+
+// boot logs
+window.onload = () => {
+  lg('system ready', 'o');
+  setTimeout(() => lg('api → http://localhost:5000', 'i'), 300);
+  setTimeout(() => lg('model: personal_model.pt loaded', 'o'), 600);
+  setTimeout(() => lg('threadpoolexecutor: 4 workers', 'c'), 900);
+  setTimeout(() => lg('centroid tracker initialized', 'o'), 1200);
+  setTimeout(() => lg('waiting for video...', 'w'), 1500);
+};
+
+function lg(msg, t='i') {
+  const el = document.getElementById('term');
+  const ts = new Date().toTimeString().slice(0,8);
+  const cls = {i:'ti',o:'to',w:'tw',e:'te',d:'td',c:'tc'}[t]||'ti';
+  const line = document.createElement('div');
+  line.className = 'tl';
+  line.innerHTML = `<span class="ts">${ts}</span><span class="${cls}">${msg}</span>`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function tab(which) {
+  ['log','csv'].forEach(t => {
+    document.getElementById('t-'+t).classList.toggle('on', t===which);
+    document.getElementById('tp-'+t).classList.toggle('on', t===which);
+  });
+}
+
+// drag & drop
+const dz = document.getElementById('dropZone');
+['dragenter','dragover'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('dragging'); }));
+['dragleave','drop'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('dragging'); }));
+dz.addEventListener('drop', ev => { const f = ev.dataTransfer.files[0]; if(f) pick(f); });
+document.getElementById('fi').addEventListener('change', e => { if(e.target.files[0]) pick(e.target.files[0]); });
+
+function pick(f) {
+  if (!f.type.startsWith('video/')) { show_err('select a valid video file'); return; }
+  vFile = f;
+  hide_err();
+  dz.classList.add('has-file');
+  dz.classList.remove('dragging');
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('dropDefault').style.display = 'none';
+  document.getElementById('dropFilename').textContent = f.name + '  (' + (f.size/1024/1024).toFixed(1) + ' mb)';
+  document.getElementById('dropMeta').style.display = 'block';
+  
+  // reset ROI
+  roiPts = [];
+  baseFrame = null;
+  lg(`loading video preview: ${f.name}...`, 'i');
+
+  const url = URL.createObjectURL(f);
+  const tmpVid = document.createElement('video');
+  tmpVid.style.display = 'none';
+  tmpVid.muted = true;
+  tmpVid.src = url;
+
+  // Use loadeddata which is safer for large files
+  tmpVid.onloadeddata = () => {
+    // Seek to 0.5s instead of 0.1s to skip initial black frames
+    tmpVid.currentTime = 0.5;
+  };
+
+  tmpVid.onseeked = () => {
+    // Wait 200ms for browser to actually render the frame
+    setTimeout(() => {
+      const canvas = document.getElementById('thumbCanvas');
+      const ctx = canvas.getContext('2d');
+      const va = document.getElementById('va');
+      
+      if (!tmpVid.videoWidth) return; // safety
+
+      // Scale canvas CSS perfectly to match video aspect ratio
+      const scale = Math.min((va.clientWidth - 20) / tmpVid.videoWidth, (va.clientHeight - 20) / tmpVid.videoHeight);
+      
+      canvas.width  = tmpVid.videoWidth;
+      canvas.height = tmpVid.videoHeight;
+      canvas.style.width  = Math.floor(tmpVid.videoWidth * scale) + 'px';
+      canvas.style.height = Math.floor(tmpVid.videoHeight * scale) + 'px';
+      
+      // Draw the frame
+      ctx.drawImage(tmpVid, 0, 0, canvas.width, canvas.height);
+      
+      // Save base for redrawing
+      baseFrame = document.createElement('canvas');
+      baseFrame.width = tmpVid.videoWidth; baseFrame.height = tmpVid.videoHeight;
+      baseFrame.getContext('2d').drawImage(tmpVid, 0, 0);
+      
+      document.getElementById('vph').style.display = 'none';
+      document.getElementById('roiWrap').style.display = 'block';
+      
+      drawROI();
+      lg('preview generated. draw your traffic zone.', 'o');
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      tmpVid.remove();
+    }, 200);
+  };
+
+  tmpVid.onerror = () => {
+    lg('failed to load video preview', 'e');
+    URL.revokeObjectURL(url);
+  };
+}
+
+const cvs = document.getElementById('thumbCanvas');
+cvs.addEventListener('mousedown', e => {
+  if (e.button !== 0 || !baseFrame) return;
+  const r = cvs.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width;
+  const y = (e.clientY - r.top) / r.height;
+  roiPts.push({x, y});
+  drawROI();
+});
+cvs.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  roiPts = [];
+  drawROI();
+});
+
+function drawROI() {
+  if(!baseFrame) return;
+  const ctx = cvs.getContext('2d');
+  
+  // 1. Reset and draw video frame
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(baseFrame, 0, 0, cvs.width, cvs.height);
+  
+  // 2. Overlay lighter mask (30% opacity) so user can see the road clearly
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.fillRect(0, 0, cvs.width, cvs.height);
+  
+  if(roiPts.length === 0) return;
+  
+  // 3. Cut out the ROI polygon to reveal video underneath (Spotlight effect)
+  // We use destination-out to make the selected area 100% clear
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  roiPts.forEach((p, i) => {
+    const x = p.x * cvs.width, y = p.y * cvs.height;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  if(roiPts.length > 2) {
+    ctx.lineTo(roiPts[0].x * cvs.width, roiPts[0].y * cvs.height);
+    ctx.fill();
+  }
+  
+  // 4. Draw dashed border outline
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = '#4ade80';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([8, 6]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  
+  // 5. Draw point markers
+  for(const p of roiPts) {
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath(); ctx.arc(p.x*cvs.width, p.y*cvs.height, 5, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function show_err(m) { const e=document.getElementById('err'); e.textContent=m; e.style.display='block'; }
+function hide_err() { document.getElementById('err').style.display='none'; }
+
+async function go() {
+  if (!vFile) return;
+  setLoading(true);
+  resetUI();
+  hide_err();
+  lg('uploading...', 'i');
+  lg('running personal_model inference...', 'w');
+
+  const fd = new FormData();
+  fd.append('video', vFile);
+  if(roiPts.length > 2) {
+    fd.append('roi', JSON.stringify(roiPts));
+    lg(`sending roi polygon: ${roiPts.length} points`, 'i');
+  }
+
+  try {
+    const r = await fetch('http://localhost:5000/upload', { method:'POST', body:fd });
+    if (!r.ok) throw new Error(`http ${r.status}`);
+    const d = await r.json();
+
+    lg(`done — ${d.metrics.total_frames} frames processed`, 'o');
+    lg(`detections: ${d.metrics.total_detections}`, 'o');
+    lg(`avg infer: ${d.metrics.avg_inference_ms}ms  efps: ${d.metrics.effective_fps}`, 'i');
+    lg(`avg speed: ${d.metrics.avg_speed_kmh} km/h  max: ${d.metrics.max_speed_kmh} km/h`, 'c');
+    lg(`backend: ${d.metrics.backend}  workers: ${d.metrics.workers}`, 'd');
+    Object.entries(d.metrics.direction_counts||{}).forEach(([k,v]) => lg(`  ${k}: ${v}`, 'd'));
+    lg('csv ready', 'o');
+
+    renderVideo(d.video_url);
+    renderMetrics(d.metrics);
+    renderDir(d.metrics.direction_counts||{}, d.signals||{});
+    renderSignals(d.signals||{});
+    renderTable(d.detections);
+    csvUrl = d.csv_url;
+    document.getElementById('csvBtn').disabled = false;
+    
+    // Update descriptive tech stack string in nav
+    const backend = d.metrics.backend.includes('ONNX') ? 'ONNX Runtime' : 'PyTorch Core';
+    const techStr = `personal_model (YOLOv10n) · ${backend} · OpenCV · Flask · ${d.metrics.workers} threads`;
+    document.getElementById('nav-tech').textContent = techStr;
+
+  } catch(err) {
+    lg(`error: ${err.message}`, 'e');
+    lg('is app.py running on :5000?', 'w');
+    show_err('backend unreachable — run: python app.py');
+  } finally { setLoading(false); }
+}
+
+function setLoading(on) {
+  document.getElementById('runBtn').disabled = on;
+  document.getElementById('bspinner').style.display = on ? 'inline-block' : 'none';
+  document.getElementById('blabel').textContent = on ? 'processing...' : 'run inference';
+}
+
+function resetUI() {
+  document.getElementById('vid').style.display = 'none';
+  document.getElementById('vph').style.display = 'flex';
+  document.getElementById('roiWrap').style.display = 'none';
+  document.getElementById('dropDefault').style.display = 'block';
+  document.getElementById('dropMeta').style.display = 'none';
+  ['s-det','s-fps','s-avgspd','s-maxspd'].forEach(id => s(id,'—'));
+  ['p-avgi','p-mm','p-fps','p-wk','p-bk','p-as','p-ms'].forEach(id => s(id,'—'));
+  ['vm-fr','vm-fps','vm-infer','vm-back'].forEach(id => s(id,'—'));
+  document.getElementById('csvBtn').disabled = true;
+  document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="no-rows">processing...</td></tr>';
+  document.getElementById('classLine').innerHTML = '—';
+  ['dc-r','dc-l','dc-d','dc-u'].forEach(id => s(id,'0'));
+  ['df-r','df-l','df-d','df-u'].forEach(id => document.getElementById(id).style.width='0%');
+}
+
+function renderVideo(url) {
+  const v = document.getElementById('vid');
+  v.src = url; v.style.display = 'block';
+  document.getElementById('vph').style.display = 'none';
+}
+
+function renderMetrics(m) {
+  s('s-det', m.total_detections);
+  s('s-fps', m.effective_fps);
+  s('s-avgspd', m.avg_speed_kmh);
+  s('s-maxspd', m.max_speed_kmh);
+  s('p-avgi', m.avg_inference_ms + ' ms');
+  s('p-mm',   m.min_inference_ms + ' / ' + m.max_inference_ms);
+  s('p-fps',  m.effective_fps);
+  s('p-wk',   m.workers + ' threads');
+  s('p-bk',   m.backend);
+  s('p-as',   m.avg_speed_kmh + ' km/h');
+  s('p-ms',   m.max_speed_kmh + ' km/h');
+  s('vm-fr',    m.total_frames);
+  s('vm-fps',   m.effective_fps);
+  s('vm-infer', m.avg_inference_ms + ' ms');
+  s('vm-back',  m.backend);
+
+  const classMap = { car:'#4ade80', bus:'#facc15', truck:'#a78bfa', motorcycle:'#67e8f9' };
+  const line = Object.entries(m.class_counts||{}).map(([c,n]) =>
+    `<span style="color:${classMap[c]||'#888'}">${c}:${n}</span>`
+  ).join(' ');
+  document.getElementById('classLine').innerHTML = line || '—';
+}
+
+function renderDir(dc, signals = {}) {
+  const map = { 'RIGHT':['df-r','dc-r','sig-right'], 'LEFT':['df-l','dc-l','sig-left'], 'DOWN':['df-d','dc-d','sig-down'], 'UP':['df-u','dc-u','sig-up'] };
+  const total = Object.values(dc).reduce((a,b)=>a+b,0)||1;
+  for (const [k,[bar,cnt]] of Object.entries(map)) {
+    const v = dc[k]||0;
+    document.getElementById(bar).style.width = ((v/total)*100)+'%';
+    
+    let histText = "";
+    if (signals[k]) {
+      histText = ` <span class="hist-tag">(avg: ${signals[k].historical_avg})</span>`;
+    }
+    document.getElementById(cnt).innerHTML = v + histText;
+  }
+}
+
+function renderSignals(sigs) {
+  const map = { 'UP':'sig-up', 'DOWN':'sig-down', 'LEFT':'sig-left', 'RIGHT':'sig-right' };
+  for (const [dir, data] of Object.entries(sigs)) {
+    const el = document.getElementById(map[dir]);
+    if (!el) continue;
+    
+    const red = el.querySelector('.light.red');
+    const green = el.querySelector('.light.green');
+    const timer = el.querySelector('.timer-bubble');
+    
+    if (data.state === 'GREEN') {
+      red.classList.remove('on');
+      green.classList.add('on');
+    } else {
+      red.classList.add('on');
+      green.classList.remove('on');
+    }
+    
+    timer.style.display = 'block';
+    timer.textContent = data.duration + 's';
+    
+    lg(`signal ${dir}: ${data.state} for ${data.duration}s (curr: ${data.current} vs hist: ${data.historical_avg})`, 'c');
+  }
+}
+
+function renderTable(dets) {
+  if (!dets||!dets.length) {
+    document.getElementById('tbody').innerHTML = '<tr><td colspan="7" class="no-rows">no detections</td></tr>';
+    return;
+  }
+  const classColors = { car:'#4ade80', bus:'#facc15', truck:'#a78bfa', motorcycle:'#67e8f9' };
+  document.getElementById('tbody').innerHTML = dets.map(d =>
+    `<tr>
+      <td style="color:#333">${d.id}</td>
+      <td>${d.frame}</td>
+      <td style="color:#60a5fa">id${d.track_id}</td>
+      <td style="color:${classColors[d.class]||'#888'}">${d.class}</td>
+      <td>${(d.confidence*100).toFixed(0)}%</td>
+      <td style="color:#facc15">${d.speed_kmh}</td>
+      <td style="color:#555;font-size:7.5px">${d.direction}</td>
+    </tr>`
+  ).join('');
+}
+
+function dlCSV() {
+  if (!csvUrl) return;
+  Object.assign(document.createElement('a'), { href:csvUrl, download:'traffic_detections.csv' }).click();
+  lg('csv downloaded', 'o');
+}
+
+function s(id, val) { const e=document.getElementById(id); if(e) e.textContent=val; }
+</script>
+</body>
+</html>

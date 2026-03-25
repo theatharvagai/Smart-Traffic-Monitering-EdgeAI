@@ -1,0 +1,7 @@
+flask>=3.0.0
+flask-cors>=4.0.0
+ultralytics>=8.2.0
+opencv-python>=4.9.0
+onnxruntime>=1.17.0
+# For GPU inference on Jetson / CUDA machines, comment out the above and use:
+# onnxruntime-gpu>=1.17.0
